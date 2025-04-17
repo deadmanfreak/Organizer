@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Multi-User Registration with QR & Search</title>
+  <meta charset="UTF-8" />
+  <title>Multi-User Registration & QR</title>
   <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
   <style>
     body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
@@ -14,104 +14,128 @@
   </style>
 </head>
 <body>
-  <h2>Registration Form</h2>
-  <input type="text" id="name" placeholder="Name" required>
-  <input type="number" id="age" placeholder="Age" required>
-  <input type="text" id="address" placeholder="Address" required>
-  <input type="text" id="code" placeholder="Code Number (e.g., 001)" required>
-  <button onclick="addUser()">Register</button>
-
-  <h3>Registered Users</h3>
-  <input type="text" id="search" placeholder="Search by Name or Code..." oninput="displayUsers()">
-
-  <div id="userList"></div>
-
-  <canvas id="qr"></canvas>
+  <div id="app"></div>
 
   <script>
-    // Load and display users on page load
-    window.onload = function () {
-      displayUsers();
-    };
+    const path = window.location.pathname;
 
-    function getUsers() {
-      return JSON.parse(localStorage.getItem('users')) || [];
-    }
+    if (path.startsWith("/user/")) {
+      // --------------------------
+      // View specific user by code
+      // --------------------------
+      const code = path.split("/").pop();
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      const user = users.find(u => u.code === code);
 
-    function saveUsers(users) {
-      localStorage.setItem('users', JSON.stringify(users));
-    }
+      document.getElementById("app").innerHTML = `
+        <h1>User Info</h1>
+        <div id="user-info">
+          ${user ? `
+            <p><strong>Name:</strong> ${user.name}</p>
+            <p><strong>Age:</strong> ${user.age}</p>
+            <p><strong>Address:</strong> ${user.address}</p>
+            <p><strong>Code:</strong> ${user.code}</p>
+          ` : `<p>User with code <strong>${code}</strong> not found.</p>`}
+        </div>
+      `;
+    } else {
+      // --------------------------
+      // Main registration page
+      // --------------------------
+      document.getElementById("app").innerHTML = `
+        <h2>Registration Form</h2>
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="number" id="age" placeholder="Age" required>
+        <input type="text" id="address" placeholder="Address" required>
+        <input type="text" id="code" placeholder="Code Number (e.g., 001)" required>
+        <button onclick="addUser()">Register</button>
 
-    function addUser() {
-      const name = document.getElementById('name').value.trim();
-      const age = document.getElementById('age').value.trim();
-      const address = document.getElementById('address').value.trim();
-      const code = document.getElementById('code').value.trim();
+        <h3>Registered Users</h3>
+        <input type="text" id="search" placeholder="Search by Name or Code..." oninput="displayUsers()">
+        <div id="userList"></div>
+        <canvas id="qr"></canvas>
+      `;
 
-      if (!name || !age || !address || !code) {
-        alert("Please fill out all fields.");
-        return;
+      window.onload = function () {
+        displayUsers();
+      };
+
+      window.getUsers = function () {
+        return JSON.parse(localStorage.getItem('users')) || [];
       }
 
-      const users = getUsers();
-
-      // Optional: Check for duplicate code
-      if (users.some(u => u.code === code)) {
-        alert("Code already used. Please enter a unique code.");
-        return;
+      window.saveUsers = function (users) {
+        localStorage.setItem('users', JSON.stringify(users));
       }
 
-      users.push({ name, age, address, code });
-      saveUsers(users);
-      displayUsers();
+      window.addUser = function () {
+        const name = document.getElementById('name').value.trim();
+        const age = document.getElementById('age').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const code = document.getElementById('code').value.trim();
 
-      // Clear input fields
-      document.getElementById('name').value = '';
-      document.getElementById('age').value = '';
-      document.getElementById('address').value = '';
-      document.getElementById('code').value = '';
+        if (!name || !age || !address || !code) {
+          alert("Please fill out all fields.");
+          return;
+        }
 
-      alert("User registered!");
-    }
+        const users = getUsers();
 
-    function displayUsers() {
-      const userList = document.getElementById('userList');
-      const searchTerm = document.getElementById('search').value.toLowerCase();
-      userList.innerHTML = '';
-      const users = getUsers();
+        if (users.some(u => u.code === code)) {
+          alert("Code already used. Please enter a unique code.");
+          return;
+        }
 
-      const filtered = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm) ||
-        user.code.toLowerCase().includes(searchTerm)
-      );
+        users.push({ name, age, address, code });
+        saveUsers(users);
+        displayUsers();
 
-      filtered.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'user-card';
-        div.innerHTML = `
-          <h4>${user.name} (Code: ${user.code})</h4>
-          <p>Age: ${user.age}</p>
-          <p>Address: ${user.address}</p>
-          <button onclick="generateQR('${user.code}')">Generate QR</button>
-        `;
-        userList.appendChild(div);
-      });
+        // Clear fields
+        document.getElementById('name').value = '';
+        document.getElementById('age').value = '';
+        document.getElementById('address').value = '';
+        document.getElementById('code').value = '';
 
-      if (filtered.length === 0) {
-        userList.innerHTML = "<p>No matching users found.</p>";
+        alert("User registered!");
       }
-    }
 
-    function generateQR(code) {
-      const url = `https://example.com/user/${encodeURIComponent(code)}`;
+      window.displayUsers = function () {
+        const userList = document.getElementById('userList');
+        const searchTerm = document.getElementById('search').value.toLowerCase();
+        userList.innerHTML = '';
+        const users = getUsers();
 
-      new QRious({
-        element: document.getElementById('qr'),
-        value: url,
-        size: 200
-      });
+        const filtered = users.filter(user =>
+          user.name.toLowerCase().includes(searchTerm) ||
+          user.code.toLowerCase().includes(searchTerm)
+        );
 
-      alert(`QR Code for Code ${code} generated!`);
+        filtered.forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'user-card';
+          div.innerHTML = `
+            <h4>${user.name} (Code: ${user.code})</h4>
+            <p>Age: ${user.age}</p>
+            <p>Address: ${user.address}</p>
+            <button onclick="generateQR('${user.code}')">Generate QR</button>
+          `;
+          userList.appendChild(div);
+        });
+
+        if (filtered.length === 0) {
+          userList.innerHTML = "<p>No matching users found.</p>";
+        }
+      }
+
+      window.generateQR = function (code) {
+        const url = \`https://organizer-two-rho.vercel.app/user/\${encodeURIComponent(code)}\`;
+        new QRious({
+          element: document.getElementById('qr'),
+          value: url,
+          size: 200
+        });
+        alert(\`QR Code for Code \${code} generated!\`);
+      }
     }
   </script>
 </body>
