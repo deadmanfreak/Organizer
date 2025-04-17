@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-User Registration with QR & Search</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
+    input, button { margin: 10px 0; width: 100%; padding: 8px; }
+    .user-card { border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin: 10px 0; }
+    .user-card h4 { margin: 5px 0; }
+    canvas { display: block; margin: 20px auto; }
+    #search { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Registration Form</h2>
+  <input type="text" id="name" placeholder="Name" required>
+  <input type="number" id="age" placeholder="Age" required>
+  <input type="text" id="address" placeholder="Address" required>
+  <input type="text" id="code" placeholder="Code Number (e.g., 001)" required>
+  <button onclick="addUser()">Register</button>
+
+  <h3>Registered Users</h3>
+  <input type="text" id="search" placeholder="Search by Name or Code..." oninput="displayUsers()">
+
+  <div id="userList"></div>
+
+  <canvas id="qr"></canvas>
+
+  <script>
+    // Load and display users on page load
+    window.onload = function () {
+      displayUsers();
+    };
+
+    function getUsers() {
+      return JSON.parse(localStorage.getItem('users')) || [];
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    function addUser() {
+      const name = document.getElementById('name').value.trim();
+      const age = document.getElementById('age').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const code = document.getElementById('code').value.trim();
+
+      if (!name || !age || !address || !code) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      const users = getUsers();
+
+      // Optional: Check for duplicate code
+      if (users.some(u => u.code === code)) {
+        alert("Code already used. Please enter a unique code.");
+        return;
+      }
+
+      users.push({ name, age, address, code });
+      saveUsers(users);
+      displayUsers();
+
+      // Clear input fields
+      document.getElementById('name').value = '';
+      document.getElementById('age').value = '';
+      document.getElementById('address').value = '';
+      document.getElementById('code').value = '';
+
+      alert("User registered!");
+    }
+
+    function displayUsers() {
+      const userList = document.getElementById('userList');
+      const searchTerm = document.getElementById('search').value.toLowerCase();
+      userList.innerHTML = '';
+      const users = getUsers();
+
+      const filtered = users.filter(user =>
+        user.name.toLowerCase().includes(searchTerm) ||
+        user.code.toLowerCase().includes(searchTerm)
+      );
+
+      filtered.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-card';
+        div.innerHTML = `
+          <h4>${user.name} (Code: ${user.code})</h4>
+          <p>Age: ${user.age}</p>
+          <p>Address: ${user.address}</p>
+          <button onclick="generateQR('${user.code}')">Generate QR</button>
+        `;
+        userList.appendChild(div);
+      });
+
+      if (filtered.length === 0) {
+        userList.innerHTML = "<p>No matching users found.</p>";
+      }
+    }
+
+    function generateQR(code) {
+      const url = `https://example.com/user/${encodeURIComponent(code)}`;
+
+      new QRious({
+        element: document.getElementById('qr'),
+        value: url,
+        size: 200
+      });
+
+      alert(`QR Code for Code ${code} generated!`);
+    }
+  </script>
+</body>
+</html>
